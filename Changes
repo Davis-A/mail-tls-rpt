@@ -1,4 +1,8 @@
 {{$NEXT}}
+  - Report, Policy: as_struct and as_json name failure-details as RFC 8460
+    does, rather than failure_details, so as_json's output can be read back,
+    and a report always includes policies. Incompatible change: code reading
+    failure_details from as_struct must read failure-details
   - Report: Only accept dates in the RFC 3339 form RFC 8460 asks for, rather
     than anything Date::Parse takes, such as "12:00" for today. Incompatible
     change: a date with no UTC offset, or with no colon in its offset, such as

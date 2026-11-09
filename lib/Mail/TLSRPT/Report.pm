@@ -177,7 +177,7 @@ sub as_struct($self) {
         },
         $self->contact_info ? ( 'contact-info' => $self->contact_info ) : (),
         'report-id' => $self->report_id,
-        scalar $self->policies->@* ? ( policies => \@policies ) : (),
+        policies => \@policies,
     };
 }
 

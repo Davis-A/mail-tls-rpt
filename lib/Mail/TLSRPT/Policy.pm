@@ -138,7 +138,7 @@ sub as_struct($self) {
             'total-successful-session-count' => $self->total_successful_session_count,
             'total-failure-session-count' => $self->total_failure_session_count,
         },
-        scalar $self->failures->@* ? ( 'failure_details' => \@failures ) : (),
+        scalar $self->failures->@* ? ( 'failure-details' => \@failures ) : (),
     };
 }
 
