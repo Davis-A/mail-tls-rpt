@@ -1,4 +1,10 @@
 {{$NEXT}}
+  - Report: Limit the size of a report, 10MB by default, gunzipped or not.
+    Incompatible change: a larger report now dies unless new_from_json or
+    new_from_json_gz is given a larger max_size
+  - Report: Die with the gunzip error when a gzipped report is corrupt,
+    including a bad CRC or length in its trailer, read a report gzipped as
+    several members, and refuse a gzip inside a gzip
   - Report: new_from_json takes UTF-8 encoded bytes, as received, and decodes
     them as UTF-8 rather than Latin-1, and as_json returns UTF-8 encoded bytes.
     Incompatible change: passing new_from_json a decoded string with non-ASCII

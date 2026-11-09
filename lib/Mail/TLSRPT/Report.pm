@@ -10,6 +10,8 @@ use DateTime;
 use Date::Parse qw{ str2time };
 use IO::Uncompress::Gunzip;
 use Text::CSV;
+
+use constant DEFAULT_MAX_SIZE => 10 * 1024 * 1024;
     has organization_name => (is => 'rw', isa => Str, required => 1);
     has start_datetime => (is => 'rw', isa => class_type('DateTime'), required => 1, coerce => sub{&_coerce_datetime});
     has end_datetime => (is => 'rw', isa => class_type('DateTime'), required => 1, coerce => sub{&_coerce_datetime});
@@ -42,7 +44,7 @@ my $report = Mail::TLSRPT::Report->new(
 
 Create a new object
 
-=constructor I<new_from_json($json)>
+=constructor I<new_from_json($json,$args)>
 
 Create a new object using a JSON string, this will create sub-objects as required.
 
@@ -50,27 +52,59 @@ The string should be UTF-8 encoded bytes, as received, rather than decoded chara
 
 Will detect and handle a gzipped string.
 
+If the argument max_size is given then a report larger than that many bytes
+of JSON will die, the default is 10MB. A gzipped report is limited by the size
+of the JSON it decompresses to.
+
 =cut
 
-sub new_from_json($class,$json) {
+sub new_from_json($class,$json,$args={}) {
     if ( $json =~ /^\037\213/ ) {
-        return $class->new_from_json_gz($json);
+        return $class->new_from_json_gz($json,$args);
     }
-    my $j = JSON->new->utf8;
-    my $data = $j->decode($json);
-    return $class->new_from_data($data);
+    return $class->_new_from_json_string($json,$args);
 }
 
-=constructor I<new_from_json_gz($json)>
+=constructor I<new_from_json_gz($json,$args)>
 
 Create a new object using a gzipped JSON string, this will create sub-objects as required.
 
+Takes the same max_size argument as new_from_json.
+
 =cut
 
-sub new_from_json_gz($class,$compressed_json) {
-  my $json;
-  IO::Uncompress::Gunzip::gunzip(\$compressed_json,\$json);
-  return $class->new_from_json($json);
+sub new_from_json_gz($class,$compressed_json,$args={}) {
+  # JSON that isn't gzipped is read as it is, as when gunzip passed it through
+  return $class->_new_from_json_string($compressed_json,$args) unless $compressed_json =~ /^\037\213/;
+  my $max_size = $args->{max_size} // DEFAULT_MAX_SIZE;
+  # Not transparent, so whatever follows the last member is left unread
+  # rather than added to the JSON
+  my $gunzip = IO::Uncompress::Gunzip->new(\$compressed_json, Strict => 1, Transparent => 0)
+    or croak "Could not gunzip report: $IO::Uncompress::Gunzip::GunzipError";
+  my $json = '';
+  while (1) {
+    my $status = $gunzip->read(my $buffer, 65536);
+    croak "Could not gunzip report: $IO::Uncompress::Gunzip::GunzipError" if $status < 0;
+    if ( $status == 0 ) {
+      my $next = $gunzip->nextStream;
+      croak "Could not gunzip report: $IO::Uncompress::Gunzip::GunzipError" if $next < 0;
+      last if $next == 0;
+      next;
+    }
+    $json .= $buffer;
+    croak "Report is larger than $max_size bytes when gunzipped" if length $json > $max_size;
+  }
+  # A gzip inside a gzip is not a report: say so, rather than fail as bad JSON
+  croak 'Report is gzipped twice' if $json =~ /^\037\213/;
+  return $class->_new_from_json_string($json,$args);
+}
+
+sub _new_from_json_string($class,$json,$args) {
+    my $max_size = $args->{max_size} // DEFAULT_MAX_SIZE;
+    croak "Report is larger than $max_size bytes" if length $json > $max_size;
+    my $j = JSON->new->utf8;
+    my $data = $j->decode($json);
+    return $class->new_from_data($data);
 }
 
 =constructor I<new_from_data($data)>
