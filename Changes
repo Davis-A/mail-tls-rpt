@@ -1,4 +1,9 @@
 {{$NEXT}}
+  - Report: new_from_json takes UTF-8 encoded bytes, as received, and decodes
+    them as UTF-8 rather than Latin-1, and as_json returns UTF-8 encoded bytes.
+    Incompatible change: passing new_from_json a decoded string with non-ASCII
+    characters now dies, so encode it first, and as_json's result is bytes, so
+    don't print it through an :encoding(UTF-8) layer
   - Pragmas: Only the tlsrpt command sets UTF-8 layers on STDIN, STDOUT
     and STDERR, loading the classes no longer does
 

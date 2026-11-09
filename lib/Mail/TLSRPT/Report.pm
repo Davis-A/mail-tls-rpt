@@ -46,6 +46,8 @@ Create a new object
 
 Create a new object using a JSON string, this will create sub-objects as required.
 
+The string should be UTF-8 encoded bytes, as received, rather than decoded characters.
+
 Will detect and handle a gzipped string.
 
 =cut
@@ -54,7 +56,7 @@ sub new_from_json($class,$json) {
     if ( $json =~ /^\037\213/ ) {
         return $class->new_from_json_gz($json);
     }
-    my $j = JSON->new;
+    my $j = JSON->new->utf8;
     my $data = $j->decode($json);
     return $class->new_from_data($data);
 }
@@ -95,12 +97,13 @@ sub new_from_data($class,$data) {
 
 =method I<as_json>
 
-Return the current object and sub-objects as a json string
+Return the current object and sub-objects as a json string, UTF-8 encoded, as
+it would be sent.
 
 =cut
 
 sub as_json($self) {
-    my $j = JSON->new;
+    my $j = JSON->new->utf8;
     $j->canonical;
     return $j->encode( $self->as_struct );
 }

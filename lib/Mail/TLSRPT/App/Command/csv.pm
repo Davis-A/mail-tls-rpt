@@ -58,7 +58,7 @@ sub execute($self,$opt,$args) {
   my $output= join("\n",@all_output);
 
   if ( $opt->output ) {
-    open my $fh, '>', $opt->output or die 'Could not open output file';
+    open my $fh, '>:encoding(UTF-8)', $opt->output or die 'Could not open output file';
     print $fh $output;
     close $fh;
   }

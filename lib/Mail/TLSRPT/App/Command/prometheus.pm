@@ -61,7 +61,7 @@ sub execute($self,$opt,$args) {
   }
 
   if ( $opt->output ) {
-    open my $fh, '>', $opt->output or die 'Could not open output file';
+    open my $fh, '>:encoding(UTF-8)', $opt->output or die 'Could not open output file';
     print $fh $prometheus->format;
     close $fh;
   }
