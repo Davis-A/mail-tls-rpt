@@ -1,4 +1,7 @@
 {{$NEXT}}
+  - Failure: Accept failures without receiving-mx-hostname or sending-mta-ip,
+    as for a policy fetch failure, where there may be no MX to name
+  - Failure: The prometheus sending_mta_ip label gives the address, not 3
   - Policy: Accept mx-host as a list, as RFC 8460 describes it, keep it as a
     list in as_struct and as_json, and add policy_mx_hosts, which new also
     takes

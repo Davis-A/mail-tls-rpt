@@ -6,8 +6,8 @@ use Moo;
 use Mail::TLSRPT::Pragmas;
 use Net::IP;
     has result_type => (is => 'rw', isa => Str, required => 1);
-    has sending_mta_ip => (is => 'rw', isa => class_type('Net::IP'), required => 1,coerce => sub{&_coerce_ip});
-    has receiving_mx_hostname => (is => 'rw', isa => Str, required => 1);
+    has sending_mta_ip => (is => 'rw', isa => class_type('Net::IP'), required => 0,coerce => sub{&_coerce_ip});
+    has receiving_mx_hostname => (is => 'rw', isa => Str, required => 0);
     has receiving_mx_helo => (is => 'rw', isa => Str, required => 0);
     has receiving_ip => (is => 'rw', isa => class_type('Net::IP'), required => 0, coerce => sub{&_coerce_ip});
     has failed_session_count => (is => 'rw', isa => Int, required => 1);
@@ -50,8 +50,8 @@ Create a new object using a data structure, this will create sub-objects as requ
 sub new_from_data($class,$data) {
     my $self = $class->new(
         result_type => $data->{'result-type'},
-        sending_mta_ip => $data->{'sending-mta-ip'},
-        receiving_mx_hostname => $data->{'receiving-mx-hostname'},
+        $data->{'sending-mta-ip'} ? ( sending_mta_ip => $data->{'sending-mta-ip'} ) : (),
+        $data->{'receiving-mx-hostname'} ? ( receiving_mx_hostname => $data->{'receiving-mx-hostname'} ) : (),
         $data->{'receiving-mx-helo'} ? ( receiving_mx_helo => $data->{'receiving-mx-helo'} ) : (),
         $data->{'receiving-ip'} ? ( receiving_ip => $data->{'receiving-ip'} ) : (),
         failed_session_count => $data->{'failed-session-count'} // 0,
@@ -92,7 +92,7 @@ sub as_struct($self) {
     return {
         'result-type' => $self->result_type,
         $self->sending_mta_ip ? ( 'sending-mta-ip' => $self->sending_mta_ip->ip ) : (),
-        'receiving-mx-hostname' => $self->receiving_mx_hostname,
+        $self->receiving_mx_hostname ? ( 'receiving-mx-hostname' => $self->receiving_mx_hostname ) : (),
         $self->receiving_mx_helo ? ( 'receiving-mx-helo' => $self->receiving_mx_helo ) : (),
         $self->receiving_ip ? ( 'receiving-ip' => $self->receiving_ip->ip ) : (),
         'failed-session-count' => $self->failed_session_count,
@@ -113,7 +113,8 @@ sub as_string($self) {
         ' Failure:',
         '  Result-Type: '.$self->result_type,
         $self->sending_mta_ip ? ('  Sending-MTA-IP: '.$self->sending_mta_ip->ip) : (),
-        '  Receiving-MX-Hostname: '.$self->receiving_mx_hostname . $receiving_ip,
+        $self->receiving_mx_hostname ? ('  Receiving-MX-Hostname: '.$self->receiving_mx_hostname . $receiving_ip)
+          : $self->receiving_ip ? ('  Receiving-IP: '.$self->receiving_ip->ip) : (),
         $self->receiving_mx_helo ? ('  Receiving-MX-HELO: '.$self->receiving_mx_helo) : (),
         '  Failed-Session-Count: '.$self->failed_session_count,
         $self->additional_information ? ('  Additional-Information: '.$self->additional_information ) : (),
@@ -139,8 +140,8 @@ sub process_prometheus($self,$policy,$report,$prometheus) {
         policy_domain=>$policy->policy_domain,
         policy_mx_host=>$policy->policy_mx_host,
         result_type=>$self->result_type,
-        sending_mta_ip=>$self->sending_mta_ip,
-        receiving_mx_hostname=>$self->receiving_mx_hostname,
+        sending_mta_ip=>($self->sending_mta_ip?$self->sending_mta_ip->ip:''),
+        receiving_mx_hostname=>$self->receiving_mx_hostname // '',
         receiving_mx_helo=>$self->receiving_mx_helo // '',
         receiving_ip=>($self->receiving_ip?$self->receiving_ip->ip:''),
     });
@@ -162,8 +163,8 @@ sub _csv_headers($self) {
 sub _csv_fragment($self) {
     return (
         $self->result_type,
-        $self->sending_mta_ip->ip,
-        $self->receiving_mx_hostname,
+        $self->sending_mta_ip ? $self->sending_mta_ip->ip : '',
+        $self->receiving_mx_hostname // '',
         $self->receiving_mx_helo // '',
         $self->receiving_ip ? $self->receiving_ip->ip : '',
         $self->failed_session_count,
