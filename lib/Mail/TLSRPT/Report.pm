@@ -114,19 +114,34 @@ Create a new object using a data structure, this will create sub-objects as requ
 =cut
 
 sub new_from_data($class,$data) {
+    croak 'Report is not an object' unless ref $data eq 'HASH';
+    my $date_range = $data->{'date-range'} // {};
+    croak 'date-range: not an object' unless ref $date_range eq 'HASH';
+    my $policies = $data->{policies} // [];
+    croak 'policies: not a list' unless ref $policies eq 'ARRAY';
     my @policies;
-    foreach my $policy ( $data->{policies}->@* ) {
-        push @policies, Mail::TLSRPT::Policy->new_from_data($policy);
+    foreach my $i ( keys $policies->@* ) {
+        my $policy = eval { Mail::TLSRPT::Policy->new_from_data($policies->[$i]) };
+        die "policies[$i]: $@" unless $policy;
+        push @policies, $policy;
     }
     my $self = $class->new(
         organization_name => $data->{'organization-name'},
-        start_datetime => DateTime->from_epoch(epoch => str2time($data->{'date-range'}->{'start-datetime'})),
-        end_datetime => DateTime->from_epoch(epoch => str2time($data->{'date-range'}->{'end-datetime'})),
+        start_datetime => DateTime->from_epoch(epoch => _parse_date($date_range->{'start-datetime'},'date-range.start-datetime')),
+        end_datetime => DateTime->from_epoch(epoch => _parse_date($date_range->{'end-datetime'},'date-range.end-datetime')),
         $data->{'contact-info'} ? ( contact_info => $data->{'contact-info'} ) : (),
         report_id => $data->{'report-id'},
         policies => \@policies,
     );
     return $self;
+}
+
+sub _parse_date($date,$name) {
+    croak "$name: missing" unless defined $date;
+    croak "$name: not a string" if ref $date;
+    my $epoch = str2time($date);
+    croak "$name: could not parse date \"$date\"" unless defined $epoch;
+    return $epoch;
 }
 
 =method I<as_json>

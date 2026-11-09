@@ -53,13 +53,21 @@ Create a new object using a data structure, this will create sub-objects as requ
 =cut
 
 sub new_from_data($class,$data) {
+    croak 'Policy is not an object' unless ref $data eq 'HASH';
+    foreach my $key ( qw{ policy summary } ) {
+        croak "$key: not an object" if defined $data->{$key} && ref $data->{$key} ne 'HASH';
+    }
     my $mx_host = $data->{policy}->{'mx-host'} // '';
     if ( ref $mx_host eq 'ARRAY' ) {
-        croak 'mx-host is not a list of strings' if grep { ! defined $_ || ref $_ } $mx_host->@*;
+        croak 'policy.mx-host: not a list of strings' if grep { ! defined $_ || ref $_ } $mx_host->@*;
     }
+    my $failure_details = $data->{'failure-details'} // [];
+    croak 'failure-details: not a list' unless ref $failure_details eq 'ARRAY';
     my @failures;
-    foreach my $failure ( $data->{'failure-details'}->@* ) {
-        push @failures, Mail::TLSRPT::Failure->new_from_data($failure);
+    foreach my $i ( keys $failure_details->@* ) {
+        my $failure = eval { Mail::TLSRPT::Failure->new_from_data($failure_details->[$i]) };
+        die "failure-details[$i]: $@" unless $failure;
+        push @failures, $failure;
     }
     my $self = $class->new(
         policy_type => $data->{policy}->{'policy-type'},

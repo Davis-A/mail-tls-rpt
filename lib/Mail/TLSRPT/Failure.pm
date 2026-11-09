@@ -16,8 +16,10 @@ use Net::IP;
 
 sub _coerce_ip {
     my $ip = shift;
-    $ip = Net::IP->new($ip) unless ref $ip eq 'Net::IP';
-    return $ip;
+    return $ip if ref $ip eq 'Net::IP';
+    # An address Net::IP can't parse is left as it was, for the type check
+    # to name in its error
+    return Net::IP->new($ip) // $ip;
 }
 
 =head1 DESCRIPTION
@@ -48,6 +50,7 @@ Create a new object using a data structure, this will create sub-objects as requ
 =cut
 
 sub new_from_data($class,$data) {
+    croak 'Failure is not an object' unless ref $data eq 'HASH';
     my $self = $class->new(
         result_type => $data->{'result-type'},
         $data->{'sending-mta-ip'} ? ( sending_mta_ip => $data->{'sending-mta-ip'} ) : (),

@@ -1,4 +1,6 @@
 {{$NEXT}}
+  - Report: Errors from new_from_data say where in the report the problem is,
+    and a date or IP address that can't be parsed says so
   - Report: Accept reports without contact-info
   - Failure: Accept failures without receiving-mx-hostname or sending-mta-ip,
     as for a policy fetch failure, where there may be no MX to name
