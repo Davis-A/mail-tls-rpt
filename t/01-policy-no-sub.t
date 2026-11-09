@@ -90,14 +90,19 @@ subtest 'policy_type enumeration check' => sub {
     $args->{policy_type} = $allowed_type;
     lives_ok( sub { $tlsrpt = Mail::TLSRPT::Policy->new($args) }, 'policy_type '.$allowed_type.' lives' );
     is( $tlsrpt->policy_type, $allowed_type, 'policy_type '.$allowed_type.' returned' );
+    ok( $tlsrpt->is_known_policy_type, 'policy_type '.$allowed_type.' is known' );
   }
 
-  foreach my $disallowed_type (qw{tlsb mta-sts no-policy-found-foobar random}) {
+  foreach my $unknown_type (qw{tlsb mta-sts no-policy-found-foobar random}) {
     my $tlsrpt;
     my $new_args = clone $args;
-    $args->{policy_type} = $disallowed_type;
-    dies_ok( sub { $tlsrpt = Mail::TLSRPT::Policy->new($args) }, 'policy_type '.$disallowed_type.' dies' );
+    $args->{policy_type} = $unknown_type;
+    lives_ok( sub { $tlsrpt = Mail::TLSRPT::Policy->new($args) }, 'policy_type '.$unknown_type.' lives' );
+    is( $tlsrpt->policy_type, $unknown_type, 'policy_type '.$unknown_type.' returned' );
+    ok( ! $tlsrpt->is_known_policy_type, 'policy_type '.$unknown_type.' is not known' );
   }
+
+  is_deeply( [ Mail::TLSRPT::Policy->known_policy_types ], [ qw{ tlsa sts no-policy-found } ], 'known_policy_types returns the RFC 8460 list' );
 
 };
 

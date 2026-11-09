@@ -5,7 +5,7 @@ use 5.20.0;
 use Moo;
 use Mail::TLSRPT::Pragmas;
 use Mail::TLSRPT::Failure;
-    has policy_type => (is => 'rw', isa => Enum[qw( tlsa sts no-policy-found )], required => 1);
+    has policy_type => (is => 'rw', isa => Str, required => 1);
     has policy_string => (is => 'rw', isa => ArrayRef, required => 1);
     has policy_domain => (is => 'rw', isa => Str, required => 1);
     has policy_mx_host => (is => 'rw', isa => Str, required => 1);
@@ -54,6 +54,26 @@ sub new_from_data($class,$data) {
         failures => \@failures,
     );
     return $self;
+}
+
+=method I<known_policy_types>
+
+Return the list of policy types RFC 8460 section 4.4 defines
+
+=cut
+
+sub known_policy_types($class) {
+    return qw( tlsa sts no-policy-found );
+}
+
+=method I<is_known_policy_type>
+
+Return true if the policy type is one of known_policy_types
+
+=cut
+
+sub is_known_policy_type($self) {
+    return scalar grep { $_ eq $self->policy_type } $self->known_policy_types;
 }
 
 =method I<as_struct>

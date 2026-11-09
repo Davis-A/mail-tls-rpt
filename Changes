@@ -1,4 +1,6 @@
 {{$NEXT}}
+  - Policy: Accept policy types beyond the three RFC 8460 defines, and add
+    methods to list and check for those three
   - Failure: Accept result types not in the RFC 8460 registry, which RFC 8460
     expects to grow, and add methods to list and check for registered types
   - Report: Limit the size of a report, 10MB by default, gunzipped or not.
