@@ -1,4 +1,5 @@
 {{$NEXT}}
+  - Report: Accept reports without contact-info
   - Failure: Accept failures without receiving-mx-hostname or sending-mta-ip,
     as for a policy fetch failure, where there may be no MX to name
   - Failure: The prometheus sending_mta_ip label gives the address, not 3

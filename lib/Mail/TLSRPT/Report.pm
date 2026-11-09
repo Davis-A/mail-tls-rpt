@@ -15,7 +15,7 @@ use constant DEFAULT_MAX_SIZE => 10 * 1024 * 1024;
     has organization_name => (is => 'rw', isa => Str, required => 1);
     has start_datetime => (is => 'rw', isa => class_type('DateTime'), required => 1, coerce => sub{&_coerce_datetime});
     has end_datetime => (is => 'rw', isa => class_type('DateTime'), required => 1, coerce => sub{&_coerce_datetime});
-    has contact_info => (is => 'rw', isa => Str, required => 1);
+    has contact_info => (is => 'rw', isa => Str, required => 0);
     has report_id => (is => 'rw', isa => Str, required => 1);
     has policies => (is => 'rw', isa => ArrayRef, required => 0, lazy => 1, builder => sub{return []} );
 
@@ -122,7 +122,7 @@ sub new_from_data($class,$data) {
         organization_name => $data->{'organization-name'},
         start_datetime => DateTime->from_epoch(epoch => str2time($data->{'date-range'}->{'start-datetime'})),
         end_datetime => DateTime->from_epoch(epoch => str2time($data->{'date-range'}->{'end-datetime'})),
-        contact_info => $data->{'contact-info'},
+        $data->{'contact-info'} ? ( contact_info => $data->{'contact-info'} ) : (),
         report_id => $data->{'report-id'},
         policies => \@policies,
     );
@@ -156,7 +156,7 @@ sub as_struct($self) {
             'start-datetime' => $self->start_datetime->datetime.'Z',
             'end-datetime' => $self->end_datetime->datetime.'Z',
         },
-        'contact-info' => $self->contact_info,
+        $self->contact_info ? ( 'contact-info' => $self->contact_info ) : (),
         'report-id' => $self->report_id,
         scalar $self->policies->@* ? ( policies => \@policies ) : (),
     };
@@ -171,7 +171,7 @@ Return a textual human readable representation of the current object and its sub
 sub as_string($self) {
     return join( "\n",
         'Report-ID: <'.$self->report_id.'>',
-        'From: "'.$self->organization_name.'" <'.$self->contact_info.'>',
+        'From: "'.$self->organization_name.'"'.( $self->contact_info ? ' <'.$self->contact_info.'>' : '' ),
         'Dates: '.$self->start_datetime->datetime.'Z to '.$self->end_datetime->datetime.'Z',
         map { $_->as_string } $self->policies->@*,
     );
@@ -216,7 +216,7 @@ sub _csv_fragment($self) {
         $self->organization_name,
         $self->start_datetime->datetime.'Z',
         $self->end_datetime->datetime.'Z',
-        $self->contact_info,
+        $self->contact_info // '',
     );
 }
 

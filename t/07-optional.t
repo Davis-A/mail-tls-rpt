@@ -16,7 +16,6 @@ my $json = '{
     "start-datetime": "2016-04-01T00:00:00Z",
     "end-datetime": "2016-04-01T23:59:59Z"
   },
-  "contact-info": "sts-reporting@company-x.example",
   "report-id": "5065427c-23d3-47ca-b6e0-946ea0e8c4be",
   "policies": [{
     "policy": {
@@ -37,7 +36,7 @@ my $json = '{
 }';
 
 my $wanted_string = 'Report-ID: <5065427c-23d3-47ca-b6e0-946ea0e8c4be>
-From: "Company-X" <sts-reporting@company-x.example>
+From: "Company-X"
 Dates: 2016-04-01T00:00:00Z to 2016-04-01T23:59:59Z
 Policy:
  Type: sts
@@ -50,13 +49,16 @@ Policy:
   Result-Type: sts-policy-fetch-error
   Failed-Session-Count: 12';
 
-subtest 'policy fetch failure' => sub {
+subtest 'policy fetch failure without contact-info' => sub {
   my $tlsrpt;
   lives_ok( sub { $tlsrpt = Mail::TLSRPT::Report->new_from_json($json) }, 'new_from_json lives' );
+  is( $tlsrpt->contact_info, undef, 'contact_info is undef' );
   my $failure = $tlsrpt->policies->[0]->failures->[0];
   is( $failure->sending_mta_ip, undef, 'sending_mta_ip is undef' );
   is( $failure->receiving_mx_hostname, undef, 'receiving_mx_hostname is undef' );
   is( $tlsrpt->as_string, $wanted_string, 'as_string correct' );
+  my $struct = $tlsrpt->as_struct;
+  ok( ! exists $struct->{'contact-info'}, 'as_struct has no contact-info' );
   is_deeply( $failure->as_struct, { 'result-type' => 'sts-policy-fetch-error', 'failed-session-count' => 12 }, 'failure as_struct has only what was given' );
   lives_ok( sub { $tlsrpt->as_csv({ add_header => 1 }) }, 'as_csv lives' );
   my $prometheus = Prometheus::Tiny->new;
