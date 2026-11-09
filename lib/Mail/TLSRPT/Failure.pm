@@ -5,7 +5,7 @@ use 5.20.0;
 use Moo;
 use Mail::TLSRPT::Pragmas;
 use Net::IP;
-    has result_type => (is => 'rw', isa => Enum[ qw( starttls-not-supported certificate-host-mismatch certificate-expired certificate-not-trusted validation-failure tlsa-invalid dnssec-invalid dane-required sts-policy-fetch-error sts-policy-invalid sts-webpki-invalid ) ], required => 1);
+    has result_type => (is => 'rw', isa => Str, required => 1);
     has sending_mta_ip => (is => 'rw', isa => class_type('Net::IP'), required => 1,coerce => sub{&_coerce_ip});
     has receiving_mx_hostname => (is => 'rw', isa => Str, required => 1);
     has receiving_mx_helo => (is => 'rw', isa => Str, required => 0);
@@ -59,6 +59,27 @@ sub new_from_data($class,$data) {
         $data->{'failure-reason-code'} ? ( failure_reason_code => $data->{'failure-reason-code'} ) : (),
     );
     return $self;
+}
+
+=method I<registered_result_types>
+
+Return the list of result types registered by RFC 8460, the list is expected
+to grow, so a report may contain others.
+
+=cut
+
+sub registered_result_types($class) {
+    return qw( starttls-not-supported certificate-host-mismatch certificate-expired certificate-not-trusted validation-failure tlsa-invalid dnssec-invalid dane-required sts-policy-fetch-error sts-policy-invalid sts-webpki-invalid );
+}
+
+=method I<is_registered_result_type>
+
+Return true if the result type is one of registered_result_types
+
+=cut
+
+sub is_registered_result_type($self) {
+    return scalar grep { $_ eq $self->result_type } $self->registered_result_types;
 }
 
 =method I<as_struct>
