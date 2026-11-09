@@ -1,4 +1,7 @@
 {{$NEXT}}
+  - Policy: Accept mx-host as a list, as RFC 8460 describes it, keep it as a
+    list in as_struct and as_json, and add policy_mx_hosts, which new also
+    takes
   - Policy: Accept policy types beyond the three RFC 8460 defines, and add
     methods to list and check for those three
   - Failure: Accept result types not in the RFC 8460 registry, which RFC 8460

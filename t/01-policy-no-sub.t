@@ -82,6 +82,46 @@ subtest 'create from generated data' => sub {
 
 };
 
+subtest 'mx-host as a list' => sub {
+
+  my $tlsrpt;
+  my $new_data = clone $data;
+  $new_data->{policy}->{'mx-host'} = [ 'mx1.example.com', '*.example.net' ];
+  lives_ok( sub { $tlsrpt = Mail::TLSRPT::Policy->new_from_data($new_data) }, 'new_from_data lives' );
+  is( $tlsrpt->policy_mx_host, 'mx1.example.com *.example.net', 'policy_mx_host returned joined' );
+  is_deeply( $tlsrpt->policy_mx_hosts, [ 'mx1.example.com', '*.example.net' ], 'policy_mx_hosts returned' );
+  is_deeply( $tlsrpt->as_struct->{policy}->{'mx-host'}, [ 'mx1.example.com', '*.example.net' ], 'as_struct keeps the list' );
+
+  $new_data->{policy}->{'mx-host'} = [ 'mx1.example.com', { 'bad' => 1 } ];
+  dies_ok( sub { $tlsrpt = Mail::TLSRPT::Policy->new_from_data($new_data) }, 'list with a non string dies' );
+
+  $tlsrpt = Mail::TLSRPT::Policy->new_from_data({ $new_data->%*, policy => { $new_data->{policy}->%*, 'mx-host' => [ 'mx1.example.com' ] } });
+  $tlsrpt->policy_mx_host('mx2.example.com mx3.example.com');
+  is_deeply( $tlsrpt->as_struct->{policy}->{'mx-host'}, [ 'mx2.example.com', 'mx3.example.com' ], 'as_struct follows policy_mx_host when set' );
+
+  $new_data->{policy}->{'mx-host'} = [];
+  $tlsrpt = Mail::TLSRPT::Policy->new_from_data($new_data);
+  is_deeply( $tlsrpt->as_struct->{policy}->{'mx-host'}, [], 'as_struct keeps an empty list' );
+
+  $new_data->{policy}->{'mx-host'} = [ '', 'mx one.example.com' ];
+  $tlsrpt = Mail::TLSRPT::Policy->new_from_data($new_data);
+  is_deeply( $tlsrpt->as_struct->{policy}->{'mx-host'}, [ '', 'mx one.example.com' ], 'as_struct keeps a list exactly' );
+
+  my $new_args = clone $args;
+  delete $new_args->{policy_mx_host};
+  $new_args->{policy_mx_hosts} = [ 'mx1.example.com', '*.example.net' ];
+  lives_ok( sub { $tlsrpt = Mail::TLSRPT::Policy->new($new_args) }, 'new with policy_mx_hosts lives' );
+  is( $tlsrpt->policy_mx_host, 'mx1.example.com *.example.net', 'policy_mx_host returned joined' );
+  is_deeply( $tlsrpt->as_struct->{policy}->{'mx-host'}, [ 'mx1.example.com', '*.example.net' ], 'as_struct gives the list' );
+  $new_args->{policy_mx_host} = 'mx.example.com';
+  dies_ok( sub { Mail::TLSRPT::Policy->new($new_args) }, 'new with both dies' );
+
+  lives_ok( sub { $tlsrpt = Mail::TLSRPT::Policy->new_from_data($data) }, 'new_from_data with a string lives' );
+  is_deeply( $tlsrpt->policy_mx_hosts, [ 'mx.example.com' ], 'policy_mx_hosts returned from a string' );
+  is( $tlsrpt->as_struct->{policy}->{'mx-host'}, 'mx.example.com', 'as_struct keeps the string' );
+
+};
+
 subtest 'policy_type enumeration check' => sub {
 
   foreach my $allowed_type (qw{tlsa sts no-policy-found}) {

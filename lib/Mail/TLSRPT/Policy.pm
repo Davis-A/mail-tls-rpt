@@ -9,9 +9,22 @@ use Mail::TLSRPT::Failure;
     has policy_string => (is => 'rw', isa => ArrayRef, required => 1);
     has policy_domain => (is => 'rw', isa => Str, required => 1);
     has policy_mx_host => (is => 'rw', isa => Str, required => 1);
+    has _policy_mx_hosts => (is => 'ro', isa => ArrayRef[Str], predicate => '_has_policy_mx_hosts');
     has total_successful_session_count => (is => 'rw', isa => Int, required => 1);
     has total_failure_session_count => (is => 'rw', isa => Int, required => 1);
     has failures => (is => 'rw', isa => ArrayRef, required => 0, lazy => 1, builder => sub{return []} );
+
+around BUILDARGS => sub($orig,$class,@args) {
+    my $args = $class->$orig(@args);
+    if ( exists $args->{policy_mx_hosts} ) {
+        my $hosts = delete $args->{policy_mx_hosts};
+        croak 'Give policy_mx_host or policy_mx_hosts, not both' if exists $args->{policy_mx_host};
+        croak 'policy_mx_hosts is not a list of strings' if ref $hosts ne 'ARRAY' || grep { ! defined $_ || ref $_ } $hosts->@*;
+        $args->{policy_mx_host} = join( ' ', $hosts->@* );
+        $args->{_policy_mx_hosts} = [ $hosts->@* ];
+    }
+    return $args;
+};
 
 =head1 DESCRIPTION
 
@@ -40,6 +53,10 @@ Create a new object using a data structure, this will create sub-objects as requ
 =cut
 
 sub new_from_data($class,$data) {
+    my $mx_host = $data->{policy}->{'mx-host'} // '';
+    if ( ref $mx_host eq 'ARRAY' ) {
+        croak 'mx-host is not a list of strings' if grep { ! defined $_ || ref $_ } $mx_host->@*;
+    }
     my @failures;
     foreach my $failure ( $data->{'failure-details'}->@* ) {
         push @failures, Mail::TLSRPT::Failure->new_from_data($failure);
@@ -48,12 +65,30 @@ sub new_from_data($class,$data) {
         policy_type => $data->{policy}->{'policy-type'},
         policy_string => $data->{policy}->{'policy-string'} // [],
         policy_domain => $data->{policy}->{'policy-domain'},
-        policy_mx_host => $data->{policy}->{'mx-host'} // '',
+        ref $mx_host eq 'ARRAY'
+          ? ( policy_mx_hosts => $mx_host )
+          : ( policy_mx_host => $mx_host ),
         total_successful_session_count => $data->{summary}->{'total-successful-session-count'} // 0,
         total_failure_session_count => $data->{summary}->{'total-failure-session-count'} // 0,
         failures => \@failures,
     );
     return $self;
+}
+
+=method I<policy_mx_hosts>
+
+Return the mx-host patterns as an arrayref. RFC 8460 gives mx-host as a list,
+though its own example gives a string. A list can be given to new as
+policy_mx_hosts, in place of policy_mx_host: it's joined with spaces into
+policy_mx_host, and as_struct gives mx-host back as that list, or if
+policy_mx_host has been set since, as policy_mx_host split on whitespace.
+
+=cut
+
+sub policy_mx_hosts($self) {
+    return [ $self->_policy_mx_hosts->@* ]
+      if $self->_has_policy_mx_hosts && $self->policy_mx_host eq join( ' ', $self->_policy_mx_hosts->@* );
+    return [ split( ' ', $self->policy_mx_host ) ];
 }
 
 =method I<known_policy_types>
@@ -89,7 +124,7 @@ sub as_struct($self) {
             'policy-type' => $self->policy_type,
             'policy-string' => $self->policy_string,
             'policy-domain' => $self->policy_domain,
-            'mx-host' => $self->policy_mx_host,
+            'mx-host' => $self->_has_policy_mx_hosts ? $self->policy_mx_hosts : $self->policy_mx_host,
         },
         summary => {
             'total-successful-session-count' => $self->total_successful_session_count,
