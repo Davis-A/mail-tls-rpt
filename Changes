@@ -1,4 +1,6 @@
 {{$NEXT}}
+  - Pragmas: Only the tlsrpt command sets UTF-8 layers on STDIN, STDOUT
+    and STDERR, loading the classes no longer does
 
 2.20210112 2021-01-12 UTC
   - Switch to a purely numeric version string

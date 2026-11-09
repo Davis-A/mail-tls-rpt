@@ -3,6 +3,7 @@ use 5.20.0;
 use strict;
 use warnings;
 use Mail::TLSRPT::Pragmas;
+use open ':std', ':encoding(UTF-8)';
 # ABSTRACT: TLSRPT report processor
 # PODNAME: tlsrpt
 # VERSION

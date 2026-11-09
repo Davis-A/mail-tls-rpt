@@ -13,8 +13,6 @@ use JSON;
 use Types::Standard;
 use Type::Utils;
 
-use open ':std', ':encoding(UTF-8)';
-
 =head1 DESCRIPTION
 
 Setup system wide pragmas
