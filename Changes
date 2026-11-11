@@ -1,4 +1,8 @@
 {{$NEXT}}
+  - Report: Only accept dates in the RFC 3339 form RFC 8460 asks for, rather
+    than anything Date::Parse takes, such as "12:00" for today. Incompatible
+    change: a date with no UTC offset, or with no colon in its offset, such as
+    +0000, now dies
   - App: The prometheus command says why it couldn't parse a file, as csv does
   - Report: Errors from new_from_data say where in the report the problem is,
     and a date or IP address that can't be parsed says so

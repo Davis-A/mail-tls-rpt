@@ -136,10 +136,14 @@ sub new_from_data($class,$data) {
     return $self;
 }
 
+# RFC 3339 section 5.6 date-time, with the lowercase t and z and the space
+# for T that its notes allow. str2time alone would take "12:00" as today.
+my $rfc3339_date_time = qr{\A\d{4}-\d\d-\d\d[Tt ]\d\d:\d\d:\d\d(?:\.\d+)?(?:[Zz]|[+-](?:[01]\d|2[0-3]):[0-5]\d)\z}a;
+
 sub _parse_date($date,$name) {
     croak "$name: missing" unless defined $date;
     croak "$name: not a string" if ref $date;
-    my $epoch = str2time($date);
+    my $epoch = $date =~ $rfc3339_date_time ? str2time($date) : undef;
     croak "$name: could not parse date \"$date\"" unless defined $epoch;
     return $epoch;
 }

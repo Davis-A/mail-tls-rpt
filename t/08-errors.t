@@ -55,6 +55,16 @@ dies_with( sub($d) { $d->{'date-range'}->{'start-datetime'} = 'yesterday-ish' },
   qr/^date-range\.start-datetime: could not parse date "yesterday-ish"/, 'bad date says which and what' );
 dies_with( sub($d) { $d->{'date-range'}->{'start-datetime'} = { 'day' => 1 } },
   qr/^date-range\.start-datetime: not a string/, 'date not a string says so' );
+foreach my $bad_date ( '2016', '1', '12:00', '2016-04-01', '2016-04-01T00:00:00', '2016-04-01T00:00:00 +1000',
+    '2016-04-01T00:00:00+0000', '2016-04-01T00:00:00+24:00', '2016-04-01T00:00:00+10:60' ) {
+  dies_with( sub($d) { $d->{'date-range'}->{'start-datetime'} = $bad_date },
+    qr/^date-range\.start-datetime: could not parse date/, 'date "'.$bad_date.'" is not RFC 3339' );
+}
+foreach my $good_date ( '2016-04-01T10:00:00+10:00', '2016-04-01t00:00:00z', '2016-04-01 00:00:00.25Z' ) {
+  my $good = clone $data;
+  $good->{'date-range'}->{'start-datetime'} = $good_date;
+  is( Mail::TLSRPT::Report->new_from_data($good)->start_datetime->epoch, 1459468800, 'date "'.$good_date.'" is RFC 3339' );
+}
 dies_with( sub($d) { delete $d->{'date-range'}->{'end-datetime'} },
   qr/^date-range\.end-datetime: missing/, 'missing date says which' );
 dies_with( sub($d) { $d->{'date-range'} = 'today' },
