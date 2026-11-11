@@ -99,6 +99,22 @@ sub policy_mx_hosts($self) {
     return [ split( ' ', $self->policy_mx_host ) ];
 }
 
+=method I<policy_mode>
+
+Return the mode from the mode field of an sts policy_string, as written, or
+undef if there isn't one. Returns undef for other policy types.
+
+=cut
+
+sub policy_mode($self) {
+    return undef unless $self->policy_type eq 'sts';
+    foreach my $line ( $self->policy_string->@* ) {
+        next if ! defined $line || ref $line;
+        return $1 if $line =~ /^mode:[ \t]*(\S+)/m;
+    }
+    return undef;
+}
+
 =method I<known_policy_types>
 
 Return the list of policy types RFC 8460 section 4.4 defines
@@ -152,7 +168,7 @@ sub as_string($self) {
     return join( "\n",
         'Policy:',
         ' Type: '.$self->policy_type,
-        ' String: '. join('; ',$self->policy_string->@*),
+        ' String: '. join('; ', map { $_ // '' } $self->policy_string->@*),
         ' Domain: '.$self->policy_domain,
         ' MX-Host: '.$self->policy_mx_host,
         ' Successful-Session-Count: '.$self->total_successful_session_count,
@@ -207,7 +223,7 @@ sub _csv_headers($self) {
 sub _csv_fragment($self) {
     return (
         $self->policy_type,
-        join('; ',$self->policy_string->@*),
+        join('; ', map { $_ // '' } $self->policy_string->@*),
         $self->policy_domain,
         $self->policy_mx_host,
         $self->total_successful_session_count,

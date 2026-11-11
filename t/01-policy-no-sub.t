@@ -8,6 +8,7 @@ use Test::More;
 use Test::Exception;
 use Mail::TLSRPT;
 use Mail::TLSRPT::Policy;
+use Mail::TLSRPT::Report;
 use DateTime;
 use Clone qw{clone};
 
@@ -119,6 +120,40 @@ subtest 'mx-host as a list' => sub {
   lives_ok( sub { $tlsrpt = Mail::TLSRPT::Policy->new_from_data($data) }, 'new_from_data with a string lives' );
   is_deeply( $tlsrpt->policy_mx_hosts, [ 'mx.example.com' ], 'policy_mx_hosts returned from a string' );
   is( $tlsrpt->as_struct->{policy}->{'mx-host'}, 'mx.example.com', 'as_struct keeps the string' );
+
+};
+
+subtest 'policy_mode' => sub {
+
+  my $new_args = clone $args;
+  $new_args->{policy_type} = 'sts';
+  $new_args->{policy_string} = [ 'version: STSv1', 'mode: testing', 'mx: *.example.com', 'max_age: 86400' ];
+  is( Mail::TLSRPT::Policy->new($new_args)->policy_mode, 'testing', 'mode from sts policy' );
+
+  $new_args->{policy_string} = [ "version: STSv1\nmode:enforce\nmx: *.example.com\nmax_age: 86400" ];
+  is( Mail::TLSRPT::Policy->new($new_args)->policy_mode, 'enforce', 'mode from sts policy in a single string' );
+
+  $new_args->{policy_string} = [ 'version: STSv1', 'max_age: 86400' ];
+  is( Mail::TLSRPT::Policy->new($new_args)->policy_mode, undef, 'no mode in sts policy' );
+
+  $new_args->{policy_string} = [ undef, 'mode: testing' ];
+  is( Mail::TLSRPT::Policy->new($new_args)->policy_mode, 'testing', 'a null line is skipped' );
+  like( Mail::TLSRPT::Policy->new($new_args)->as_string, qr/String: ; mode: testing/, 'and shown empty in as_string' );
+  my $report = Mail::TLSRPT::Report->new(
+    organization_name => 'Company-X',
+    start_datetime => DateTime->from_epoch( epoch => 0 ),
+    end_datetime => DateTime->from_epoch( epoch => 0 ),
+    report_id => 'report',
+    policies => [ Mail::TLSRPT::Policy->new($new_args) ],
+  );
+  like( $report->as_csv({}), qr/,"; mode: testing",/, 'and in as_csv' );
+
+  $new_args->{policy_type} = 'STS';
+  is( Mail::TLSRPT::Policy->new($new_args)->policy_mode, undef, 'policy type is case-sensitive, as in is_known_policy_type' );
+
+  $new_args->{policy_type} = 'tlsa';
+  $new_args->{policy_string} = [ 'mode: testing' ];
+  is( Mail::TLSRPT::Policy->new($new_args)->policy_mode, undef, 'no mode for tlsa policy' );
 
 };
 

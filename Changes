@@ -1,4 +1,6 @@
 {{$NEXT}}
+  - Policy: Add policy_mode, the mode of an sts policy, and show a null
+    policy-string line as empty rather than warning
   - Report, Policy: as_struct and as_json name failure-details as RFC 8460
     does, rather than failure_details, so as_json's output can be read back,
     and a report always includes policies. Incompatible change: code reading
