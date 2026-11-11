@@ -1,4 +1,5 @@
 {{$NEXT}}
+  - App: The prometheus command says why it couldn't parse a file, as csv does
   - Report: Errors from new_from_data say where in the report the problem is,
     and a date or IP address that can't be parsed says so
   - Report: Accept reports without contact-info

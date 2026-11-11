@@ -50,12 +50,12 @@ sub execute($self,$opt,$args) {
     my $payload = join('',@file_contents);
 
     $tlsrpt = eval{ Mail::TLSRPT::Report->new_from_json($payload) };
-    $tlsrpt //= eval{ Mail::TLSRPT::Report->new_from_json_gz($payload) };
+    my $error = $@;
     if ( $tlsrpt ) {
         $tlsrpt->process_prometheus($prometheus);
     }
     else {
-        warn "Could not parse file $file\n";
+        warn "Could not parse file $file: $error";
     }
 
   }
